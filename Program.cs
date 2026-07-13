@@ -1,9 +1,9 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Windows.Forms;
-using TNovReleaser.Forms;
+using System.Windows;
 using TNovReleaser.Services;
+using TNovReleaser.Views;
 
 namespace TNovReleaser
 {
@@ -18,14 +18,11 @@ namespace TNovReleaser
         {
             AllocConsole();
 
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
             var log = new StringBuilder();
 
             try
             {
-                var files = FileSelectionForm.LoadFilteredFiles();
+                var files = FileDiscoveryService.LoadFilteredFiles();
                 if (files.Count == 0)
                 {
                     log.AppendLine("Файлы с заданным префиксом не найдены.");
@@ -36,15 +33,21 @@ namespace TNovReleaser
                     return;
                 }
 
-                using (var form = new FileSelectionForm(files))
+                var app = new Application
                 {
-                    if (form.ShowDialog() != DialogResult.OK)
-                    {
-                        log.AppendLine("Операция отменена пользователем.");
-                        LogService.WriteLog(log);
-                        WaitForExit();
-                        return;
-                    }
+                    ShutdownMode = ShutdownMode.OnExplicitShutdown
+                };
+
+                var window = new FileSelectionWindow(files);
+                var confirmed = window.ShowDialog() == true;
+                app.Shutdown();
+
+                if (!confirmed)
+                {
+                    log.AppendLine("Операция отменена пользователем.");
+                    LogService.WriteLog(log);
+                    WaitForExit();
+                    return;
                 }
 
                 var productVersion = VersionService.ReadProductVersion();
