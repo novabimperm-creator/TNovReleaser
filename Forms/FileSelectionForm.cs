@@ -109,7 +109,13 @@ namespace TNovReleaser.Forms
 
         private void OnCurrentCellDirtyStateChanged(object sender, EventArgs e)
         {
-            if (_grid.IsCurrentCellDirty)
+            if (!_grid.IsCurrentCellDirty)
+            {
+                return;
+            }
+
+            var currentColumn = _grid.CurrentCell?.OwningColumn;
+            if (currentColumn != null && currentColumn.Name == "Selected")
             {
                 _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
             }
