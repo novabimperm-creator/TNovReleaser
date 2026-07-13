@@ -4,14 +4,15 @@ namespace TNovReleaser
 {
     internal static class AppConfig
     {
-        public const string SourceDirectory = @"Z:\DEV\TNovReleaser";
-
-        public static readonly string[] OutputDirectories =
+        public static string SourceDirectory
         {
-            @"C:\Output\Dir1",
-            @"C:\Output\Dir2",
-            @"C:\Output\Dir3"
-        };
+            get { return LocalSettings.SourceDirectory; }
+        }
+
+        public static string[] OutputDirectories
+        {
+            get { return LocalSettings.OutputDirectories; }
+        }
 
         public const string FileNamePrefix = "TNov";
 

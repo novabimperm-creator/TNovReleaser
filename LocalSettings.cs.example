@@ -1,0 +1,14 @@
+namespace TNovReleaser
+{
+    internal static class LocalSettings
+    {
+        public const string SourceDirectory = @"Z:\DEV\TNovReleaser";
+
+        public static readonly string[] OutputDirectories =
+        {
+            @"C:\Output\Dir1",
+            @"C:\Output\Dir2",
+            @"C:\Output\Dir3"
+        };
+    }
+}
