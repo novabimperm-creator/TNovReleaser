@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace FileCopierApp.Services
+namespace TNovReleaser.Services
 {
     internal static class VersionService
     {

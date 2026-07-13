@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // Общие сведения об этой сборке предоставляются следующим набором
 // набора атрибутов. Измените значения этих атрибутов для изменения сведений,
 // связанные со сборкой.
-[assembly: AssemblyTitle("FileCopierApp")]
-[assembly: AssemblyDescription("Копирование выбранных файлов в несколько выходных каталогов")]
+[assembly: AssemblyTitle("TNovReleaser")]
+[assembly: AssemblyDescription("Копирование выбранных TNov-файлов в несколько выходных каталогов с записью релизов")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("FileCopierApp")]
+[assembly: AssemblyProduct("TNovReleaser")]
 [assembly: AssemblyCopyright("Copyright ©  2025")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

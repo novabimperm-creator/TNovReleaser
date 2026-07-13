@@ -4,9 +4,9 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using FileCopierApp.Models;
+using TNovReleaser.Models;
 
-namespace FileCopierApp.Forms
+namespace TNovReleaser.Forms
 {
     internal sealed class FileSelectionForm : Form
     {
@@ -20,7 +20,7 @@ namespace FileCopierApp.Forms
         {
             _files = files.ToList();
 
-            Text = "Выбор файлов для копирования";
+            Text = "Выбор файлов для релиза";
             StartPosition = FormStartPosition.CenterScreen;
             Width = 900;
             Height = 500;
@@ -60,19 +60,18 @@ namespace FileCopierApp.Forms
                 FillWeight = 50
             };
 
-            var commentColumn = new DataGridViewTextBoxColumn
+            var releaseNoteColumn = new DataGridViewTextBoxColumn
             {
-                Name = "VersionComment",
-                HeaderText = "Комментарий к версии",
-                DataPropertyName = "VersionComment",
+                Name = "ReleaseNote",
+                HeaderText = "Примечание к релизу",
+                DataPropertyName = "ReleaseNote",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 50
             };
 
-            _grid.Columns.AddRange(selectedColumn, fileNameColumn, commentColumn);
+            _grid.Columns.AddRange(selectedColumn, fileNameColumn, releaseNoteColumn);
             _grid.DataSource = _bindingSource;
             _grid.CurrentCellDirtyStateChanged += OnCurrentCellDirtyStateChanged;
-            _grid.CellValueChanged += OnCellValueChanged;
             _grid.CellEndEdit += OnCellEndEdit;
 
             var buttonPanel = new FlowLayoutPanel
@@ -106,17 +105,6 @@ namespace FileCopierApp.Forms
 
             AcceptButton = okButton;
             CancelButton = cancelButton;
-
-            Load += OnFormLoad;
-        }
-
-        private void OnFormLoad(object sender, EventArgs e)
-        {
-            foreach (DataGridViewRow row in _grid.Rows)
-            {
-                var isSelected = row.Cells["Selected"].Value is bool selected && selected;
-                row.Cells["VersionComment"].ReadOnly = !isSelected;
-            }
         }
 
         private void OnCurrentCellDirtyStateChanged(object sender, EventArgs e)
@@ -124,21 +112,6 @@ namespace FileCopierApp.Forms
             if (_grid.IsCurrentCellDirty)
             {
                 _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-            }
-        }
-
-        private void OnCellValueChanged(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0)
-            {
-                return;
-            }
-
-            if (_grid.Columns[e.ColumnIndex].Name == "Selected")
-            {
-                var row = _grid.Rows[e.RowIndex];
-                var commentCell = row.Cells["VersionComment"];
-                commentCell.ReadOnly = !(bool)row.Cells["Selected"].Value;
             }
         }
 
@@ -162,16 +135,16 @@ namespace FileCopierApp.Forms
                 return;
             }
 
-            var filesWithoutComment = selectedFiles
-                .Where(file => string.IsNullOrWhiteSpace(file.VersionComment))
+            var filesWithoutNote = selectedFiles
+                .Where(file => string.IsNullOrWhiteSpace(file.ReleaseNote))
                 .Select(file => file.FileName)
                 .ToList();
 
-            if (filesWithoutComment.Count > 0)
+            if (filesWithoutNote.Count > 0)
             {
                 MessageBox.Show(
-                    "Для всех выбранных файлов необходимо указать комментарий к версии:\n" +
-                    string.Join("\n", filesWithoutComment),
+                    "Для всех выбранных файлов необходимо указать примечание к релизу:\n" +
+                    string.Join("\n", filesWithoutNote),
                     "Проверка данных",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
@@ -202,7 +175,7 @@ namespace FileCopierApp.Forms
                     FileName = fileName,
                     FullPath = Path.Combine(AppConfig.SourceDirectory, fileName),
                     Selected = false,
-                    VersionComment = string.Empty
+                    ReleaseNote = string.Empty
                 })
                 .ToList();
         }

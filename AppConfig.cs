@@ -1,10 +1,10 @@
 using System;
 
-namespace FileCopierApp
+namespace TNovReleaser
 {
     internal static class AppConfig
     {
-        public const string SourceDirectory = @"C:\Source\Files";
+        public const string SourceDirectory = @"Z:\DEV\TNovReleaser";
 
         public static readonly string[] OutputDirectories =
         {
@@ -13,7 +13,9 @@ namespace FileCopierApp
             @"C:\Output\Dir3"
         };
 
-        public const string FileNamePrefix = "MyApp_";
+        public const string FileNamePrefix = "TNov";
+
+        public const string ProductNamePrefixToRemove = "TNov. ";
 
         public const string VersionFileName = "version.txt";
         public const string ReleasesFileName = "releases";

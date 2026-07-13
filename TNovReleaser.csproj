@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>c2954d11-e8b1-4587-a7e5-1e3e71987ab0</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>FileCopierApp</RootNamespace>
-    <AssemblyName>FileCopierApp</AssemblyName>
+    <RootNamespace>TNovReleaser</RootNamespace>
+    <AssemblyName>TNovReleaser</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -48,6 +48,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\FileCopierService.cs" />
+    <Compile Include="Services\FileMetadataService.cs" />
     <Compile Include="Services\LogService.cs" />
     <Compile Include="Services\ReleaseService.cs" />
     <Compile Include="Services\VersionService.cs" />

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
-using FileCopierApp.Models;
+using TNovReleaser.Models;
 
-namespace FileCopierApp.Services
+namespace TNovReleaser.Services
 {
     internal static class FileCopierService
     {

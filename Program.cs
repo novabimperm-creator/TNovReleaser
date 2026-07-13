@@ -2,10 +2,10 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using FileCopierApp.Forms;
-using FileCopierApp.Services;
+using TNovReleaser.Forms;
+using TNovReleaser.Services;
 
-namespace FileCopierApp
+namespace TNovReleaser
 {
     internal static class Program
     {
@@ -48,7 +48,7 @@ namespace FileCopierApp
                 }
 
                 var productVersion = VersionService.ReadProductVersion();
-                log.AppendLine(string.Format("Версия продукта: {0}", productVersion));
+                log.AppendLine(string.Format("Версия продукта (version.txt): {0}", productVersion));
                 log.AppendLine(string.Format("Исходный каталог: {0}", AppConfig.SourceDirectory));
                 log.AppendLine("Выходные каталоги:");
                 foreach (var outputDirectory in AppConfig.OutputDirectories)
@@ -57,7 +57,7 @@ namespace FileCopierApp
                 }
 
                 log.AppendLine();
-                ReleaseService.AppendReleaseEntries(files, productVersion, log);
+                ReleaseService.AppendReleaseEntries(files, log);
                 log.AppendLine();
                 FileCopierService.CopyFiles(files, log);
             }

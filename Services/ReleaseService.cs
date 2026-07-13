@@ -2,25 +2,34 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using FileCopierApp.Models;
+using TNovReleaser.Models;
 
-namespace FileCopierApp.Services
+namespace TNovReleaser.Services
 {
     internal static class ReleaseService
     {
-        public static void AppendReleaseEntries(IEnumerable<FileItem> files, string productVersion, StringBuilder log)
+        public static void AppendReleaseEntries(IEnumerable<FileItem> files, StringBuilder log)
         {
             var releasesPath = Path.Combine(AppConfig.SourceDirectory, AppConfig.ReleasesFileName);
+            var releaseDate = DateTime.Now.ToString("yyyy-MM-dd");
             var entries = new List<string>();
 
             foreach (var file in files)
             {
-                if (!file.Selected || file.VersionComment == "-")
+                if (!file.Selected || file.ReleaseNote == "-")
                 {
                     continue;
                 }
 
-                var entry = string.Format("{0}={1}={2}", file.FileName, productVersion, file.VersionComment);
+                var productName = FileMetadataService.ReadProductName(file.FullPath);
+                var fileVersion = FileMetadataService.ReadFileVersion(file.FullPath);
+                var entry = string.Format(
+                    "{0}/{1}/{2}/{3}",
+                    productName,
+                    fileVersion,
+                    releaseDate,
+                    file.ReleaseNote);
+
                 entries.Add(entry);
                 log.AppendLine(string.Format("Добавлена запись в releases: {0}", entry));
             }
