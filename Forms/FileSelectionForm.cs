@@ -11,7 +11,6 @@ namespace TNovReleaser.Forms
     internal sealed class FileSelectionForm : Form
     {
         private readonly DataGridView _grid;
-        private readonly BindingSource _bindingSource;
         private readonly List<FileItem> _files;
 
         public IReadOnlyList<FileItem> SelectedFiles => _files;
@@ -26,8 +25,6 @@ namespace TNovReleaser.Forms
             Height = 500;
             MinimumSize = new Size(700, 400);
 
-            _bindingSource = new BindingSource { DataSource = _files };
-
             _grid = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -37,14 +34,14 @@ namespace TNovReleaser.Forms
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 RowHeadersVisible = false,
-                BackgroundColor = SystemColors.Window
+                BackgroundColor = SystemColors.Window,
+                EditMode = DataGridViewEditMode.EditOnEnter
             };
 
             var selectedColumn = new DataGridViewCheckBoxColumn
             {
                 Name = "Selected",
                 HeaderText = "Выбрать",
-                DataPropertyName = "Selected",
                 Width = 70,
                 TrueValue = true,
                 FalseValue = false
@@ -54,7 +51,6 @@ namespace TNovReleaser.Forms
             {
                 Name = "FileName",
                 HeaderText = "Файл",
-                DataPropertyName = "FileName",
                 ReadOnly = true,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 50
@@ -64,15 +60,15 @@ namespace TNovReleaser.Forms
             {
                 Name = "ReleaseNote",
                 HeaderText = "Примечание к релизу",
-                DataPropertyName = "ReleaseNote",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 50
             };
 
             _grid.Columns.AddRange(selectedColumn, fileNameColumn, releaseNoteColumn);
-            _grid.DataSource = _bindingSource;
-            _grid.CurrentCellDirtyStateChanged += OnCurrentCellDirtyStateChanged;
+            _grid.CellValueChanged += OnCellValueChanged;
             _grid.CellEndEdit += OnCellEndEdit;
+
+            PopulateGrid();
 
             var buttonPanel = new FlowLayoutPanel
             {
@@ -107,28 +103,76 @@ namespace TNovReleaser.Forms
             CancelButton = cancelButton;
         }
 
-        private void OnCurrentCellDirtyStateChanged(object sender, EventArgs e)
+        private void PopulateGrid()
         {
-            if (!_grid.IsCurrentCellDirty)
+            _grid.Rows.Clear();
+
+            foreach (var file in _files)
+            {
+                var rowIndex = _grid.Rows.Add(false, file.FileName, file.ReleaseNote ?? string.Empty);
+                _grid.Rows[rowIndex].Tag = file;
+            }
+        }
+
+        private void OnCellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
             {
                 return;
             }
 
-            var currentColumn = _grid.CurrentCell?.OwningColumn;
-            if (currentColumn != null && currentColumn.Name == "Selected")
-            {
-                _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-            }
+            SyncRowToModel(e.RowIndex);
         }
 
         private void OnCellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
-            _bindingSource.EndEdit();
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
+            SyncRowToModel(e.RowIndex);
+        }
+
+        private void SyncRowToModel(int rowIndex)
+        {
+            if (rowIndex < 0 || rowIndex >= _grid.Rows.Count)
+            {
+                return;
+            }
+
+            var row = _grid.Rows[rowIndex];
+            var file = row.Tag as FileItem;
+            if (file == null)
+            {
+                return;
+            }
+
+            var selectedValue = row.Cells["Selected"].Value;
+            file.Selected = selectedValue is bool selected && selected;
+
+            var releaseNoteValue = row.Cells["ReleaseNote"].Value;
+            file.ReleaseNote = releaseNoteValue == null
+                ? string.Empty
+                : Convert.ToString(releaseNoteValue);
+        }
+
+        private void SyncAllRowsToModel()
+        {
+            if (_grid.IsCurrentCellInEditMode)
+            {
+                _grid.EndEdit();
+            }
+
+            for (var rowIndex = 0; rowIndex < _grid.Rows.Count; rowIndex++)
+            {
+                SyncRowToModel(rowIndex);
+            }
         }
 
         private void OnOkClick(object sender, EventArgs e)
         {
-            _bindingSource.EndEdit();
+            SyncAllRowsToModel();
 
             var selectedFiles = _files.Where(file => file.Selected).ToList();
             if (selectedFiles.Count == 0)
