@@ -62,5 +62,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
+  <Target Name="EnsureLocalSettings" BeforeTargets="PrepareForBuild">
+    <Copy SourceFiles="LocalSettings.cs.example"
+          DestinationFiles="LocalSettings.cs"
+          Condition="!Exists('LocalSettings.cs')" />
+  </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
