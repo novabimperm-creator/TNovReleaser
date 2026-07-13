@@ -10,7 +10,7 @@ namespace TNovReleaser.Services
     {
         public static void AppendReleaseEntries(IEnumerable<FileItem> files, StringBuilder log)
         {
-            var releasesPath = Path.Combine(AppConfig.SourceDirectory, AppConfig.ReleasesFileName);
+            var releasesPath = Path.Combine(@"\\fs-nova\Distr\0.For Admin\_TNov", AppConfig.ReleasesFileName);
             var releaseDate = DateTime.Now.ToString("yyyy-MM-dd");
             var entries = new List<string>();
 

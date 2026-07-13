@@ -21,7 +21,8 @@ namespace TNovReleaser.Services
                 .Select(Path.GetFileName)
                 .Where(fileName =>
                     !string.IsNullOrEmpty(fileName) &&
-                    fileName.StartsWith(AppConfig.FileNamePrefix, StringComparison.OrdinalIgnoreCase))
+                    fileName.StartsWith(AppConfig.FileNamePrefix, StringComparison.OrdinalIgnoreCase) &&
+                    fileName.EndsWith(".dll"))
                 .OrderBy(fileName => fileName)
                 .Select(fileName => new FileItem
                 {

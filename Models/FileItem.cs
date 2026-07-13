@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace TNovReleaser.Models
 {
-    internal sealed class FileItem : INotifyPropertyChanged
+    public sealed class FileItem : INotifyPropertyChanged
     {
         private bool _selected;
         private string _releaseNote = string.Empty;
