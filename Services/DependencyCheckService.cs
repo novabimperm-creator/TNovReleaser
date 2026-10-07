@@ -81,7 +81,18 @@ namespace TNovReleaser.Services
                     continue;
                 }
 
-                var module = Assembly.ReflectionOnlyLoad(File.ReadAllBytes(sourcePath)).ManifestModule;
+                Module module;
+                try
+                {
+                    // Сборка могла уже загрузиться резолвером как зависимость другой выбранной.
+                    module = LoadOnce(Path.GetFileNameWithoutExtension(fileName), sourcePath).ManifestModule;
+                }
+                catch (Exception ex)
+                {
+                    problems.Add(string.Format("{0}: не удалось прочитать — {1}", fileName, ex.Message));
+                    continue;
+                }
+
                 for (var row = 1; ; row++)
                 {
                     try
@@ -110,13 +121,6 @@ namespace TNovReleaser.Services
         private Assembly OnResolve(object sender, ResolveEventArgs args)
         {
             var name = new AssemblyName(args.Name).Name;
-            var loaded = AppDomain.CurrentDomain.ReflectionOnlyGetAssemblies()
-                .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, name, StringComparison.OrdinalIgnoreCase));
-            if (loaded != null)
-            {
-                return loaded;
-            }
-
             if (!name.StartsWith(AppConfig.FileNamePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
@@ -125,7 +129,15 @@ namespace TNovReleaser.Services
             // Выпускаемые вместе сборки берём из build, остальные — те, что останутся в actual.
             var directory = _selected.Contains(name) ? _sourceDirectory : _outputDirectory;
             var path = Path.Combine(directory, name + ".dll");
-            return File.Exists(path) ? Assembly.ReflectionOnlyLoad(File.ReadAllBytes(path)) : null;
+            return File.Exists(path) ? LoadOnce(name, path) : null;
+        }
+
+        /// <summary>Сборку с тем же именем второй раз в ReflectionOnly-контекст не загрузить — берём уже загруженную.</summary>
+        private static Assembly LoadOnce(string name, string path)
+        {
+            var loaded = AppDomain.CurrentDomain.ReflectionOnlyGetAssemblies()
+                .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, name, StringComparison.OrdinalIgnoreCase));
+            return loaded ?? Assembly.ReflectionOnlyLoad(File.ReadAllBytes(path));
         }
     }
 }
