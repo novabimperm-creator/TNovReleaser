@@ -9,7 +9,7 @@ namespace TNovReleaser.Services
 {
     internal static class FileCopierService
     {
-        public static void CopyFiles(IEnumerable<FileItem> files, StringBuilder log)
+        public static void CopyFiles(IEnumerable<FileItem> files, ReleaseTarget target, StringBuilder log)
         {
             foreach (var file in files)
             {
@@ -18,11 +18,18 @@ namespace TNovReleaser.Services
                     continue;
                 }
 
-                log.AppendLine(string.Format("Копирование файла: {0}", file.FileName));
+                log.AppendLine(string.Format("Копирование файла [{0}]: {1}", target.Name, file.FileName));
 
-                foreach (var outputDirectory in AppConfig.OutputDirectories)
+                var sourcePath = Path.Combine(target.SourceDirectory, file.FileName);
+                if (!File.Exists(sourcePath))
                 {
-                    CopyFileWithRetries(file.FullPath, outputDirectory, file.FileName, log);
+                    log.AppendLine(string.Format("  [ПРОПУСК] Нет файла в сборке {0}: {1}", target.Name, sourcePath));
+                    continue;
+                }
+
+                foreach (var outputDirectory in target.OutputDirectories)
+                {
+                    CopyFileWithRetries(sourcePath, outputDirectory, file.FileName, log);
                 }
             }
         }

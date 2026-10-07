@@ -8,9 +8,9 @@ namespace TNovReleaser.Services
 {
     internal static class ReleaseService
     {
-        public static void AppendReleaseEntries(IEnumerable<FileItem> files, StringBuilder log)
+        public static void AppendReleaseEntries(IEnumerable<FileItem> files, string sourceDirectory, StringBuilder log)
         {
-            var releasesPath = Path.Combine(@"\\fs-nova\Distr\0.For Admin\_TNov", AppConfig.ReleasesFileName);
+            var releasesPath = Path.Combine(AppConfig.ReleaseRootDirectory, AppConfig.ReleasesFileName);
             var releaseDate = DateTime.Now.ToString("yyyy-MM-dd");
             var entries = new List<string>();
 
@@ -21,8 +21,9 @@ namespace TNovReleaser.Services
                     continue;
                 }
 
-                var productName = FileMetadataService.ReadProductName(file.FullPath);
-                var fileVersion = FileMetadataService.ReadFileVersion(file.FullPath);
+                var filePath = Path.Combine(sourceDirectory, file.FileName);
+                var productName = FileMetadataService.ReadProductName(filePath);
+                var fileVersion = FileMetadataService.ReadFileVersion(filePath);
                 var entry = string.Format(
                     "{0}/{1}/{2}/{3}",
                     productName,

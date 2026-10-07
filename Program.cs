@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using TNovReleaser.Models;
 using TNovReleaser.Services;
 using TNovReleaser.Views;
 
@@ -50,19 +52,36 @@ namespace TNovReleaser
                     return;
                 }
 
+                var targets = new List<ReleaseTarget>();
+                if (window.Release2022)
+                {
+                    targets.Add(AppConfig.Target2022);
+                }
+
+                if (window.Release2027)
+                {
+                    targets.Add(AppConfig.Target2027);
+                }
+
                 var productVersion = VersionService.ReadProductVersion();
                 log.AppendLine(string.Format("Версия продукта (version.txt): {0}", productVersion));
-                log.AppendLine(string.Format("Исходный каталог: {0}", AppConfig.SourceDirectory));
-                log.AppendLine("Выходные каталоги:");
-                foreach (var outputDirectory in AppConfig.OutputDirectories)
+                foreach (var target in targets)
                 {
-                    log.AppendLine(string.Format("  - {0}", outputDirectory));
+                    log.AppendLine(string.Format("[{0}] Исходный каталог: {1}", target.Name, target.SourceDirectory));
+                    log.AppendLine(string.Format("[{0}] Выходные каталоги:", target.Name));
+                    foreach (var outputDirectory in target.OutputDirectories)
+                    {
+                        log.AppendLine(string.Format("  - {0}", outputDirectory));
+                    }
                 }
 
                 log.AppendLine();
-                ReleaseService.AppendReleaseEntries(files, log);
-                log.AppendLine();
-                FileCopierService.CopyFiles(files, log);
+                ReleaseService.AppendReleaseEntries(files, targets[0].SourceDirectory, log);
+                foreach (var target in targets)
+                {
+                    log.AppendLine();
+                    FileCopierService.CopyFiles(files, target, log);
+                }
             }
             catch (Exception ex)
             {
