@@ -81,14 +81,28 @@ namespace TNovReleaser.Views
                 targets.Add(AppConfig.Target2027);
             }
 
-            var missing = DependencyCheckService.FindMissingTypes(_files, targets);
-            if (missing.Count > 0)
+            var check = DependencyCheckService.Check(_files, targets);
+            if (check.Problems.Count > 0)
             {
+                var hints = new List<string>();
+                if (check.ReleaseTogether.Count > 0)
+                {
+                    hints.Add("Отметьте для выпуска вместе (их версия в build совместима): " + string.Join(", ", check.ReleaseTogether));
+                }
+
+                if (check.BrokenSelected.Count > 0)
+                {
+                    hints.Add("В " + string.Join(", ", check.BrokenSelected) + " удалено или изменено то, что используют другие модули. " +
+                              "Лучше вернуть это в коде с [Obsolete], чтобы не пересобирать зависимые модули.");
+                }
+
                 var answer = MessageBox.Show(
-                    "Выбранные файлы используют типы, которых нет в сборках, лежащих в actual, — " +
-                    "у пользователей плагин может не запуститься:\n\n" +
-                    string.Join("\n", missing) +
-                    "\n\nОтметьте эти сборки для выпуска. Выпустить без них всё равно?",
+                    "После выпуска модули будут несовместимы — " +
+                    "у пользователей команды или весь плагин упадут (MissingMethodException / TypeLoadException):\n\n" +
+                    string.Join("\n", check.Problems.Take(30)) +
+                    (check.Problems.Count > 30 ? string.Format("\n… и ещё {0}", check.Problems.Count - 30) : string.Empty) +
+                    (hints.Count > 0 ? "\n\n" + string.Join("\n\n", hints) : string.Empty) +
+                    "\n\nВыпустить всё равно?",
                     "Несовпадение версий",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning,

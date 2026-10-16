@@ -2,142 +2,132 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using TNovReleaser.Models;
 
 namespace TNovReleaser.Services
 {
+    /// <summary>Результат проверки перед выпуском.</summary>
+    internal sealed class DependencyCheckResult
+    {
+        public List<string> Problems = new List<string>();
+
+        /// <summary>Модули из actual, которые сломаются, а их версия из build совместима — их надо выпустить вместе.</summary>
+        public SortedSet<string> ReleaseTogether = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Выпускаемые сборки, в которых не хватает того, что используют модули в actual (например TNovCommon).</summary>
+        public SortedSet<string> BrokenSelected = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>
-    /// Проверяет, что все типы, на которые ссылаются выпускаемые сборки, есть в TNov*-сборках, остающихся в actual.
-    /// Пример: TNov.dll 1006 использует TNovUtils.Issues.ModelSync.ModelSyncService, а в actual лежит TNovUtils 928,
-    /// где этого класса нет, — Revit не запускает плагин целиком (TypeLoadException в OnStartup).
+    /// Проверяет, что после выпуска все TNov*-сборки в каждом каталоге actual совместимы между собой:
+    /// и выпускаемые с оставшимися (TNov.dll 1006 → TNovUtils 928 без ModelSyncService),
+    /// и оставшиеся с выпускаемыми (TNovUtilsAR 0925 → TNovCommon без LevelNumberSettings.maxOffset).
     /// Версии сборок не сравниваются: каждая сборка поднимает версии всех плагинов, а Revit 2022 их не сверяет.
     /// </summary>
     internal static class DependencyCheckService
     {
-        public static List<string> FindMissingTypes(IList<FileItem> files, IEnumerable<ReleaseTarget> targets)
+        public static DependencyCheckResult Check(IList<FileItem> files, IEnumerable<ReleaseTarget> targets)
         {
-            var problems = new List<string>();
+            var result = new DependencyCheckResult();
             var selectedFiles = files.Where(file => file.Selected).Select(file => file.FileName).ToArray();
 
             foreach (var target in targets)
             {
+                var replacements = Replacements(target.SourceDirectory, selectedFiles);
                 foreach (var outputDirectory in target.OutputDirectories)
                 {
-                    // Отдельный домен на каждый каталог: сборки 2022 и 2027 с одинаковыми именами
-                    // нельзя загрузить в один ReflectionOnly-контекст.
-                    var domain = AppDomain.CreateDomain("TNovReleaserCheck", null, new AppDomainSetup
+                    if (!Directory.Exists(outputDirectory))
                     {
-                        ApplicationBase = Path.GetDirectoryName(typeof(MissingTypeChecker).Assembly.Location)
-                    });
+                        result.Problems.Add(string.Format("[{0}] Не удалось проверить: нет доступа к {1}", target.Name, outputDirectory));
+                        continue;
+                    }
+
+                    List<CompatibilityProblem> problems;
                     try
                     {
-                        var checker = (MissingTypeChecker)domain.CreateInstanceAndUnwrap(
-                            typeof(MissingTypeChecker).Assembly.FullName,
-                            typeof(MissingTypeChecker).FullName);
-
-                        foreach (var problem in checker.Check(target.SourceDirectory, outputDirectory, selectedFiles))
-                        {
-                            problems.Add(string.Format("[{0}] {1}", target.Name, problem));
-                        }
+                        problems = CompatibilityChecker.Check(outputDirectory, replacements);
                     }
                     catch (Exception ex)
                     {
-                        problems.Add(string.Format("[{0}] Не удалось проверить {1}: {2}", target.Name, outputDirectory, ex.Message));
+                        result.Problems.Add(string.Format("[{0}] Не удалось проверить {1}: {2}", target.Name, outputDirectory, ex.Message));
+                        continue;
                     }
-                    finally
+
+                    if (problems.Count == 0)
                     {
-                        AppDomain.Unload(domain);
+                        continue;
                     }
+
+                    foreach (var problem in problems)
+                    {
+                        result.Problems.Add(string.Format("[{0}] {1}", target.Name, problem));
+                        if (problem.TargetFromBuild && problem.Target != null)
+                        {
+                            result.BrokenSelected.Add(problem.Target);
+                        }
+                    }
+
+                    SuggestReleaseTogether(target.SourceDirectory, outputDirectory, replacements, problems, result.ReleaseTogether);
                 }
             }
 
-            return problems;
+            return result;
         }
-    }
 
-    /// <summary>Работает в отдельном домене: загружает сборки ReflectionOnly и резолвит каждую ссылку на тип.</summary>
-    internal sealed class MissingTypeChecker : MarshalByRefObject
-    {
-        private const int TypeRefTable = 0x01000000;
-
-        private string _sourceDirectory;
-        private string _outputDirectory;
-        private HashSet<string> _selected;
-
-        public string[] Check(string sourceDirectory, string outputDirectory, string[] selectedFiles)
+        /// <summary>
+        /// Сломавшиеся модули из actual пробуем взять из build: если с ними проблем у них не остаётся — советуем выпустить вместе.
+        /// </summary>
+        private static void SuggestReleaseTogether(string sourceDirectory, string outputDirectory,
+            Dictionary<string, string> replacements, List<CompatibilityProblem> problems, SortedSet<string> releaseTogether)
         {
-            _sourceDirectory = sourceDirectory;
-            _outputDirectory = outputDirectory;
-            _selected = new HashSet<string>(selectedFiles.Select(Path.GetFileNameWithoutExtension), StringComparer.OrdinalIgnoreCase);
-            AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += OnResolve;
+            var candidates = problems
+                .Where(problem => !problem.ModuleFromBuild && File.Exists(Path.Combine(sourceDirectory, problem.Module + ".dll")))
+                .Select(problem => problem.Module)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (candidates.Count == 0)
+            {
+                return;
+            }
 
-            var problems = new List<string>();
-            foreach (var fileName in selectedFiles)
+            var extended = new Dictionary<string, string>(replacements, StringComparer.OrdinalIgnoreCase);
+            foreach (var candidate in candidates)
+            {
+                extended[candidate] = Path.Combine(sourceDirectory, candidate + ".dll");
+            }
+
+            List<CompatibilityProblem> remaining;
+            try
+            {
+                remaining = CompatibilityChecker.Check(outputDirectory, extended);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            foreach (var candidate in candidates)
+            {
+                if (!remaining.Any(problem => string.Equals(problem.Module, candidate, StringComparison.OrdinalIgnoreCase)))
+                {
+                    releaseTogether.Add(candidate + ".dll");
+                }
+            }
+        }
+
+        public static Dictionary<string, string> Replacements(string sourceDirectory, IEnumerable<string> fileNames)
+        {
+            var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var fileName in fileNames)
             {
                 var sourcePath = Path.Combine(sourceDirectory, fileName);
-                if (!File.Exists(sourcePath))
+                if (File.Exists(sourcePath))
                 {
-                    continue;
-                }
-
-                Module module;
-                try
-                {
-                    // Сборка могла уже загрузиться резолвером как зависимость другой выбранной.
-                    module = LoadOnce(Path.GetFileNameWithoutExtension(fileName), sourcePath).ManifestModule;
-                }
-                catch (Exception ex)
-                {
-                    problems.Add(string.Format("{0}: не удалось прочитать — {1}", fileName, ex.Message));
-                    continue;
-                }
-
-                for (var row = 1; ; row++)
-                {
-                    try
-                    {
-                        module.ResolveType(TypeRefTable | row);
-                    }
-                    catch (ArgumentOutOfRangeException)
-                    {
-                        break; // строки таблицы TypeRef закончились
-                    }
-                    catch (TypeLoadException ex)
-                    {
-                        // Ссылка на сборку не из выпуска (Revit API и т.п.) не находится вовсе — это FileNotFoundException;
-                        // TypeLoadException значит: сборка в actual нашлась, а типа в ней нет.
-                        problems.Add(string.Format("{0}: нет типа {1} — {2}", fileName, ex.TypeName, ex.Message));
-                    }
-                    catch (Exception)
-                    {
-                    }
+                    replacements[Path.GetFileNameWithoutExtension(fileName)] = sourcePath;
                 }
             }
 
-            return problems.Distinct().ToArray();
-        }
-
-        private Assembly OnResolve(object sender, ResolveEventArgs args)
-        {
-            var name = new AssemblyName(args.Name).Name;
-            if (!name.StartsWith(AppConfig.FileNamePrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            // Выпускаемые вместе сборки берём из build, остальные — те, что останутся в actual.
-            var directory = _selected.Contains(name) ? _sourceDirectory : _outputDirectory;
-            var path = Path.Combine(directory, name + ".dll");
-            return File.Exists(path) ? LoadOnce(name, path) : null;
-        }
-
-        /// <summary>Сборку с тем же именем второй раз в ReflectionOnly-контекст не загрузить — берём уже загруженную.</summary>
-        private static Assembly LoadOnce(string name, string path)
-        {
-            var loaded = AppDomain.CurrentDomain.ReflectionOnlyGetAssemblies()
-                .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, name, StringComparison.OrdinalIgnoreCase));
-            return loaded ?? Assembly.ReflectionOnlyLoad(File.ReadAllBytes(path));
+            return replacements;
         }
     }
 }
