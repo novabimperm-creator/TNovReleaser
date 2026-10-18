@@ -1,6 +1,8 @@
 ﻿# Публикация личной конфигурации TNov на Google Drive.
 # Копирует с корпоративной шары то, что качает TNovClient в личной конфигурации
 # (GoogleDriveMirror), в локальную папку Google Drive for Desktop — Drive сам выгрузит изменения.
+# Нужна только на переходный период: последней публикацией сюда старые личные клиенты
+# получат версию, которая обновляется уже с GitHub. Потом скрипт удалить.
 # Запуск после обычного релиза:
 #   powershell -ExecutionPolicy Bypass -File Publish-PersonalDrive.ps1 -DriveActual "G:\Мой диск\TNov\actual"
 param(

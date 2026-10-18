@@ -34,7 +34,10 @@ namespace TNovReleaser.Services
             foreach (var target in targets)
             {
                 var replacements = Replacements(target.SourceDirectory, selectedFiles);
-                foreach (var outputDirectory in target.OutputDirectories)
+                // Сверяем с тем, что выпущено (корпоративный манифест), а не с actual на шаре.
+                var actualDirectory = ActualCacheService.Resolve(target.Name, new System.Text.StringBuilder())
+                                      ?? AppConfig.ActualCacheDirectory(target.Name);
+                foreach (var outputDirectory in new[] { actualDirectory })
                 {
                     if (!Directory.Exists(outputDirectory))
                     {

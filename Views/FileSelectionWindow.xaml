@@ -23,7 +23,17 @@
                       Margin="0,0,20,0" />
             <CheckBox x:Name="Release2027CheckBox"
                       Content="2027"
-                      IsChecked="True" />
+                      IsChecked="True"
+                      Margin="0,0,40,0" />
+            <CheckBox x:Name="DuplicateToShareCheckBox"
+                      Content="Дублировать на шару"
+                      ToolTip="Кроме GitHub, скопировать файлы в actual\ на шарах офисов (старые клиенты и резерв при недоступном GitHub)"
+                      IsChecked="False"
+                      Margin="0,0,20,0" />
+            <CheckBox x:Name="PublishPersonalCheckBox"
+                      Content="Опубликовать в личную"
+                      ToolTip="Обновить личный манифест на GitHub Pages"
+                      IsChecked="False" />
         </StackPanel>
 
         <DataGrid x:Name="FilesGrid"

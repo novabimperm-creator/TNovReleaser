@@ -2,13 +2,12 @@ namespace TNovReleaser
 {
     internal static class LocalSettings
     {
-        public const string SourceDirectory = @"\fs-nova\Distr\0.For Admin\_TNov\build\2022";
-
-        // Публикация строго в actual\<год>\TNov — оттуда берёт модули TNovClient.
+        // Сборка берётся локально (AppConfig.BuildRoot = <папка репозиториев>\TNovBuild).
+        // Сюда — только actual\2022\TNov на шарах для опции «Дублировать на шару».
         public static readonly string[] OutputDirectories =
         {
-            @"\fs-nova\Distr\0.For Admin\_TNov\actual\2022\TNov",
-            @"\192.168.27.11\nova-vostok\NovaService\_TNov\actual\2022\TNov"
+            @"\\fs-nova\Distr\0.For Admin\_TNov\actual\2022\TNov",
+            @"\\192.168.27.11\nova-vostok\NovaService\_TNov\actual\2022\TNov"
         };
     }
 }

@@ -28,6 +28,16 @@ namespace TNovReleaser.Views
             get { return Release2027CheckBox.IsChecked == true; }
         }
 
+        public bool DuplicateToShare
+        {
+            get { return DuplicateToShareCheckBox.IsChecked == true; }
+        }
+
+        public bool PublishPersonal
+        {
+            get { return PublishPersonalCheckBox.IsChecked == true; }
+        }
+
         private void OnOkClick(object sender, RoutedEventArgs e)
         {
             FilesGrid.CommitEdit(DataGridEditingUnit.Row, true);
@@ -68,6 +78,24 @@ namespace TNovReleaser.Views
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 return;
+            }
+
+            var uncommitted = GitStatusService.Check(selectedFiles.Select(file => file.FileName));
+            if (uncommitted.Count > 0)
+            {
+                var gitAnswer = MessageBox.Show(
+                    "В репозиториях выпускаемых модулей есть изменения не на GitHub — " +
+                    "выпуск будет собран из кода, которого нет в репозитории:\n\n" +
+                    GitStatusService.Describe(uncommitted) +
+                    "\nЗакоммитьте и отправьте изменения, пересоберите и выпустите заново.\n\nВыпустить всё равно?",
+                    "Незакоммиченные изменения",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning,
+                    MessageBoxResult.No);
+                if (gitAnswer != MessageBoxResult.Yes)
+                {
+                    return;
+                }
             }
 
             var targets = new List<ReleaseTarget>();

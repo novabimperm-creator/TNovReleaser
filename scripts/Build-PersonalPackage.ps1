@@ -1,10 +1,9 @@
 ﻿# Архив для первой установки TNov вне сети компании (личная конфигурация).
-# Внутри: client\ (TNovClient с шары), TNovConfig.json (личный, с источником обновлений
-# на Google Drive) и install-personal.bat. Плагин клиент скачает сам при первом запуске.
-#   powershell -ExecutionPolicy Bypass -File Build-PersonalPackage.ps1 -FolderId <id папки actual> -ApiKey <ключ> -Output C:\Temp\TNov-personal.zip
+# Внутри: client\ (TNovClient с шары), TNovConfig.json (личный) и install-personal.bat.
+# Обновления клиент берёт по личному манифесту на GitHub Pages (адрес зашит в клиенте),
+# плагин скачает сам при первом запуске.
+#   powershell -ExecutionPolicy Bypass -File Build-PersonalPackage.ps1 -Output C:\Temp\TNov-personal.zip
 param(
-    [Parameter(Mandatory = $true)][string]$FolderId,
-    [Parameter(Mandatory = $true)][string]$ApiKey,
     [Parameter(Mandatory = $true)][string]$Output,
     [string]$ShareRoot = '\\fs-nova\Distr\0.For Admin\_TNov'
 )
@@ -24,9 +23,8 @@ try {
 
     # ServerPath не пишем: клиент и плагин подставят папку TNovClient текущего пользователя.
     $config = [ordered]@{
-        LicenseType  = 'personal'
-        CorpName     = ''
-        UpdateSource = [ordered]@{ Type = 'GoogleDrive'; FolderId = $FolderId; ApiKey = $ApiKey }
+        LicenseType = 'personal'
+        CorpName    = ''
     }
     $config | ConvertTo-Json -Depth 3 | Set-Content -Encoding UTF8 (Join-Path $staging 'TNovConfig.json')
 

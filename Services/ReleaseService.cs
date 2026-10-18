@@ -8,9 +8,12 @@ namespace TNovReleaser.Services
 {
     internal static class ReleaseService
     {
-        public static void AppendReleaseEntries(IEnumerable<FileItem> files, string sourceDirectory, StringBuilder log)
+        /// <summary>
+        /// Записи журнала releases для выбранных файлов. Журнал хранится в корпоративном манифесте
+        /// на GitHub (ManifestService.Publish), на шару пишется только при «Дублировать на шару».
+        /// </summary>
+        public static List<string> BuildEntries(IEnumerable<FileItem> files, string sourceDirectory, StringBuilder log)
         {
-            var releasesPath = Path.Combine(AppConfig.ReleaseRootDirectory, AppConfig.ReleasesFileName);
             var releaseDate = DateTime.Now.ToString("yyyy-MM-dd");
             var entries = new List<string>();
 
@@ -32,17 +35,35 @@ namespace TNovReleaser.Services
                     file.ReleaseNote);
 
                 entries.Add(entry);
-                log.AppendLine(string.Format("Добавлена запись в releases: {0}", entry));
+                log.AppendLine(string.Format("Запись в releases: {0}", entry));
             }
 
             if (entries.Count == 0)
             {
                 log.AppendLine("Новые записи в releases не добавлялись.");
+            }
+
+            return entries;
+        }
+
+        /// <summary>Дописать записи в журнал на шаре (старые клиенты, «Дублировать на шару»).</summary>
+        public static void AppendToShare(IList<string> entries, StringBuilder log)
+        {
+            if (entries.Count == 0)
+            {
                 return;
             }
 
-            File.AppendAllLines(releasesPath, entries, Encoding.UTF8);
-            log.AppendLine(string.Format("Файл releases обновлён: {0}", releasesPath));
+            var releasesPath = Path.Combine(AppConfig.ReleaseRootDirectory, AppConfig.ReleasesFileName);
+            try
+            {
+                File.AppendAllLines(releasesPath, entries, Encoding.UTF8);
+                log.AppendLine(string.Format("Файл releases на шаре обновлён: {0}", releasesPath));
+            }
+            catch (Exception ex)
+            {
+                log.AppendLine(string.Format("[ОШИБКА] releases на шаре не обновлён: {0}", ex.Message));
+            }
         }
     }
 }
