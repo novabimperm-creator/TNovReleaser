@@ -52,6 +52,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\ActualCacheService.cs" />
+    <Compile Include="Services\ClientReleaseService.cs" />
     <Compile Include="Services\CompatibilityChecker.cs" />
     <Compile Include="Services\DependencyCheckService.cs" />
     <Compile Include="Services\FileCopierService.cs" />

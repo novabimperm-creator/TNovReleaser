@@ -63,7 +63,8 @@ namespace TNovReleaser
                     ShutdownMode = ShutdownMode.OnExplicitShutdown
                 };
 
-                var window = new FileSelectionWindow(files);
+                var client = ClientReleaseService.Read(log);
+                var window = new FileSelectionWindow(files, client);
                 var confirmed = window.ShowDialog() == true;
                 app.Shutdown();
 
@@ -113,7 +114,10 @@ namespace TNovReleaser
                 }
 
                 log.AppendLine();
-                var entries = ReleaseService.BuildEntries(files, targets[0].SourceDirectory, log);
+                // Выпуск одного клиента может идти без выбранного года.
+                var entries = targets.Count > 0
+                    ? ReleaseService.BuildEntries(files, targets[0].SourceDirectory, log)
+                    : new List<string>();
                 if (window.DuplicateToShare)
                 {
                     ReleaseService.AppendToShare(entries, log);
@@ -142,7 +146,22 @@ namespace TNovReleaser
                     }
                 }
 
-                ManifestService.Publish(items, null, string.Join("\n", entries), log, entries, window.DuplicateToShare);
+                var notes = new List<string>(entries);
+                var replacePrefixes = new List<string>();
+                if (window.ReleaseClient)
+                {
+                    // Папка сборки клиента — полный комплект: публикуется целиком (лишнее из манифеста уходит).
+                    items.AddRange(ClientReleaseService.Items());
+                    replacePrefixes.Add(ClientReleaseService.ManifestPrefix);
+                    notes.Add("TNovClient " + client.Built);
+                    log.AppendLine(string.Format("Клиент: {0}", client.Describe()));
+                    if (window.DuplicateToShare)
+                    {
+                        ClientReleaseService.CopyToShares(log);
+                    }
+                }
+
+                ManifestService.Publish(items, replacePrefixes, string.Join("\n", notes), log, entries, window.DuplicateToShare);
                 if (window.PublishPersonal)
                 {
                     log.AppendLine();

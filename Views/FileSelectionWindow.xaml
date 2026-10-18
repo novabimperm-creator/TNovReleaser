@@ -15,8 +15,12 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0"
-                    Orientation="Horizontal"
                     Margin="0,0,0,10">
+        <CheckBox x:Name="ReleaseClientCheckBox"
+                  IsChecked="False"
+                  Margin="0,0,0,8"
+                  ToolTip="Выпустить папку сборки клиента (клиент, Updater, CreateShortcut.vbs) вместе с выбранными dll или отдельно" />
+        <StackPanel Orientation="Horizontal">
             <CheckBox x:Name="Release2022CheckBox"
                       Content="2022"
                       IsChecked="True"
@@ -34,6 +38,7 @@
                       Content="Опубликовать в личную"
                       ToolTip="Обновить личный манифест на GitHub Pages"
                       IsChecked="False" />
+        </StackPanel>
         </StackPanel>
 
         <DataGrid x:Name="FilesGrid"

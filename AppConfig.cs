@@ -66,6 +66,19 @@ namespace TNovReleaser
 
         public const string VostokRootDirectory = @"\\192.168.27.11\nova-vostok\NovaService\_TNov";
 
+        /// <summary>Сборка TNovClient (конфигурация config1) — полный комплект для выпуска.</summary>
+        public static string ClientBuildDirectory
+        {
+            get { return Path.Combine(BuildRoot, @"client\config1"); }
+        }
+
+        /// <summary>actual\client на шарах — только для «Дублировать на шару».</summary>
+        public static readonly string[] ClientShareDirectories =
+        {
+            Path.Combine(ReleaseRootDirectory, @"actual\client"),
+            Path.Combine(VostokRootDirectory, @"actual\client")
+        };
+
         public static readonly string[] OutputDirectories2027 =
         {
             Path.Combine(ReleaseRootDirectory, @"actual\2027\TNov"),

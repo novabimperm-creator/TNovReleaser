@@ -11,11 +11,21 @@ namespace TNovReleaser.Views
     {
         private readonly IList<FileItem> _files;
 
-        public FileSelectionWindow(IList<FileItem> files)
+        internal FileSelectionWindow(IList<FileItem> files, ClientReleaseService.ClientInfo client)
         {
             InitializeComponent();
             _files = files;
             FilesGrid.ItemsSource = _files;
+
+            // Клиент выпускается, только если сборка новее опубликованной: клиенты не ставят
+            // сборку старше установленной, а старые (до 2.6.0) — не той же версии.
+            ReleaseClientCheckBox.Content = client.Describe();
+            ReleaseClientCheckBox.IsEnabled = client.CanRelease;
+        }
+
+        public bool ReleaseClient
+        {
+            get { return ReleaseClientCheckBox.IsChecked == true; }
         }
 
         public bool Release2022
@@ -43,21 +53,21 @@ namespace TNovReleaser.Views
             FilesGrid.CommitEdit(DataGridEditingUnit.Row, true);
             FilesGrid.CommitEdit();
 
-            if (!Release2022 && !Release2027)
+            var selectedFiles = _files.Where(file => file.Selected).ToList();
+            if (selectedFiles.Count == 0 && !ReleaseClient)
             {
                 MessageBox.Show(
-                    "Выберите хотя бы одну версию: 2022 или 2027.",
+                    "Выберите хотя бы один файл или клиент.",
                     "Проверка данных",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 return;
             }
 
-            var selectedFiles = _files.Where(file => file.Selected).ToList();
-            if (selectedFiles.Count == 0)
+            if (selectedFiles.Count > 0 && !Release2022 && !Release2027)
             {
                 MessageBox.Show(
-                    "Выберите хотя бы один файл.",
+                    "Выберите хотя бы одну версию: 2022 или 2027.",
                     "Проверка данных",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -80,7 +90,13 @@ namespace TNovReleaser.Views
                 return;
             }
 
-            var uncommitted = GitStatusService.Check(selectedFiles.Select(file => file.FileName));
+            var released = selectedFiles.Select(file => file.FileName).ToList();
+            if (ReleaseClient)
+            {
+                released.Add("TNovClient.dll");
+            }
+
+            var uncommitted = GitStatusService.Check(released);
             if (uncommitted.Count > 0)
             {
                 var gitAnswer = MessageBox.Show(
@@ -109,7 +125,7 @@ namespace TNovReleaser.Views
                 targets.Add(AppConfig.Target2027);
             }
 
-            var check = DependencyCheckService.Check(_files, targets);
+            var check = selectedFiles.Count > 0 ? DependencyCheckService.Check(_files, targets) : new DependencyCheckResult();
             if (check.Problems.Count > 0)
             {
                 var hints = new List<string>();
